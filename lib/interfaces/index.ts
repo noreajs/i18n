@@ -1,1 +1,1 @@
-export type { default as I18nConstructorType } from "./I18nConstructorType";
+export type { default as I18nConstructorType, OnMissingKeyMethodType } from "./I18nConstructorType";

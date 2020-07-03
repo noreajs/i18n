@@ -4,7 +4,10 @@
   "description": "Library of tools necessary for the internationalization of an application, based on polyglot from airbnb",
   "main": "dist/index.js",
   "dependencies": {
+    "@noreajs/common": "^1.0.5",
+    "@types/glob": "^7.1.2",
     "@types/node-polyglot": "^2.4.0",
+    "glob": "^7.1.6",
     "node-polyglot": "^2.4.0"
   },
   "devDependencies": {
