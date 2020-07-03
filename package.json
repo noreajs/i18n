@@ -1,0 +1,35 @@
+{
+  "name": "@noreajs/i18n",
+  "version": "0.0.0",
+  "description": "Library of tools necessary for the internationalization of an application, based on polyglot from airbnb",
+  "main": "dist/index.js",
+  "dependencies": {
+    "@types/node-polyglot": "^2.4.0",
+    "node-polyglot": "^2.4.0"
+  },
+  "devDependencies": {
+    "@noreajs/core": "^1.1.2-6",
+    "@types/typescript": "^2.0.0",
+    "typescript": "^3.9.6"
+  },
+  "scripts": {
+    "start": "tsc && node dist/test-server/app.js",
+    "test": "echo \"No test specified\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/noreajs/i18n.git"
+  },
+  "keywords": [
+    "i18n",
+    "norea.js",
+    "norea",
+    "node.js"
+  ],
+  "author": "Arnold L",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/noreajs/i18n/issues"
+  },
+  "homepage": "https://github.com/noreajs/i18n#readme"
+}
