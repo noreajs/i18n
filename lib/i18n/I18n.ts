@@ -352,7 +352,7 @@ export default class I18n {
       );
 
       // call the translation fallback
-      return this.translateFallback(phrase, options);
+      return this.translateFallback(phrase, options) ?? key;
     }
   }
 
@@ -402,6 +402,8 @@ export default class I18n {
         );
         return key;
       }
+    } else {
+      return undefined;
     }
   }
 }

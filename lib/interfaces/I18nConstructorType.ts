@@ -14,7 +14,7 @@ type I18nConstructorType = {
   caseSensitive?: boolean;
   syncLoading?: boolean;
   polyglotOptions?: {
-    pluralRules?: any;
+    // pluralRules?: any;
     interpolation?: InterpolationTokenOptions;
     allowMissing?: boolean;
     onMissingKey?: OnMissingKeyMethodType;
