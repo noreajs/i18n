@@ -15,6 +15,7 @@ export default class I18n {
     [locale: string]: any;
   } = {};
   private polyglot: Polyglot;
+  private fallbackPolyglot: Polyglot;
 
   constructor(init: I18nConstructorType) {
     // params validation
@@ -30,6 +31,14 @@ export default class I18n {
 
     // initialize polyglot instance
     this.polyglot = new Polyglot({
+      locale: defaultLocale,
+      interpolation: init.polyglotOptions?.interpolation,
+      allowMissing: init.polyglotOptions?.allowMissing,
+      onMissingKey: init.polyglotOptions?.onMissingKey,
+    });
+
+    // fallback polyglot
+    this.fallbackPolyglot = new Polyglot({
       locale: defaultLocale,
       interpolation: init.polyglotOptions?.interpolation,
       allowMissing: init.polyglotOptions?.allowMissing,
@@ -52,12 +61,19 @@ export default class I18n {
    */
   private validateParams(init: I18nConstructorType) {
     if (init.locales.length === 0) {
-      throw console.warn("locales: At least one language is required.");
+      throw console.warn(
+        "I18n warning -> locales: At least one language is required."
+      );
     }
 
-    if (init.fallback && !init.locales.includes(init.fallback)) {
-      throw console.warn(
-        "default: The fallback value must be in locales array"
+    if (
+      init.fallback &&
+      !JSON.parse(JSON.stringify(init.locales).toLowerCase()).includes(
+        init.fallback.toLowerCase()
+      )
+    ) {
+      console.warn(
+        "I18n warning -> default: The fallback value must be in locales array"
       );
     }
   }
@@ -132,6 +148,11 @@ export default class I18n {
             this.polyglot.replace(
               this.translations[this.polyglot.locale().toLowerCase()]
             );
+
+            // update polyglot fallback
+            this.fallbackPolyglot.replace(
+              this.translations[this.fallbackPolyglot.locale().toLowerCase()]
+            );
           }
           if (callback) {
             callback(this.translations);
@@ -161,6 +182,11 @@ export default class I18n {
       this.polyglot.replace(
         this.translations[this.polyglot.locale().toLowerCase()]
       );
+
+      // update polyglot fallback
+      this.fallbackPolyglot.replace(
+        this.translations[this.fallbackPolyglot.locale().toLowerCase()]
+      );
     }
   }
 
@@ -186,7 +212,9 @@ export default class I18n {
         jsonContent
       );
     } else {
-      throw console.warn("readLocalFile: the given path is not a file path");
+      throw console.warn(
+        "I18n warning -> readLocalFile: the given path is not a file path"
+      );
     }
   }
 
@@ -264,7 +292,7 @@ export default class I18n {
         }
       } else {
         throw console.warn(
-          `setLocale: language ${locale} is not supported. The current languages are [${this.locales.join(
+          `I18n warning -> setLocale: language "${locale}" is not supported. The current languages are [${this.locales.join(
             ", "
           )}]`
         );
@@ -295,11 +323,12 @@ export default class I18n {
     phrase: string,
     options?: number | Polyglot.InterpolationOptions | undefined
   ) {
-    const locale = this.polyglot.locale().toLowerCase();
     const key = this.caseSensitive === false ? phrase.toLowerCase() : phrase;
 
     // lazy loading code
     if (this.lazyLoading) {
+      // load translation related to the key
+      const locale = this.polyglot.locale().toLowerCase();
       const filePath = this.keyToPath(key, locale);
       if (filePath) {
         // read the related file
@@ -307,9 +336,72 @@ export default class I18n {
         // extend polyglot phrase
         this.polyglot.extend(this.translations[locale]);
       } else {
-        console.warn(`t: ${key} related file does not exist.`);
+        console.warn(
+          `I18n warning -> t: "${locale}.${key}" related file does not exist.`
+        );
       }
     }
-    return this.polyglot.t(key, options);
+
+    if (this.polyglot.has(key)) {
+      return this.polyglot.t(key, options);
+    } else {
+      console.warn(
+        `I18n warning -> t: "${this.polyglot
+          .locale()
+          .toLowerCase()}.${key}" is not defined.`
+      );
+
+      // call the translation fallback
+      return this.translateFallback(phrase, options);
+    }
+  }
+
+  /**
+   * Translate a key
+   * @param phrase translation key
+   * @param options translation options
+   */
+  private translateFallback(
+    phrase: string,
+    options?: number | Polyglot.InterpolationOptions | undefined
+  ) {
+    const key = this.caseSensitive === false ? phrase.toLowerCase() : phrase;
+
+    /**
+     * If fallback and is different to current locale
+     */
+    if (
+      !this.polyglot.has(key) &&
+      this.polyglot.locale().toLowerCase() !==
+        this.fallbackPolyglot.locale().toLowerCase()
+    ) {
+      // lazy loading code
+      if (this.lazyLoading) {
+        // fallback
+        const locale = this.fallbackPolyglot.locale().toLowerCase();
+        const fallbackFilePath = this.keyToPath(key, locale);
+        if (fallbackFilePath) {
+          // read the related file
+          this.readLocalFile(fallbackFilePath);
+          // extend polyglot phrase
+          this.fallbackPolyglot.extend(this.translations[locale]);
+        } else {
+          console.warn(
+            `I18n warning -> t: "${locale}.${key}" related file does not exist (fallback).`
+          );
+        }
+      }
+
+      if (this.fallbackPolyglot.has(key)) {
+        return this.fallbackPolyglot.t(key, options);
+      } else {
+        console.warn(
+          `I18n warning -> t: "${this.fallbackPolyglot
+            .locale()
+            .toLowerCase()}.${key}" is not defined (fallback).`
+        );
+        return key;
+      }
+    }
   }
 }
