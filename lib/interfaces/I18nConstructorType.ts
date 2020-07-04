@@ -11,13 +11,10 @@ type I18nConstructorType = {
   fallback?: string;
   lazyLoading?: boolean;
   languagesFolder?: string;
-  customHeader?: string;
-  userLocaleLookup?: Function;
-  pluralRules?: any;
   caseSensitive?: boolean;
-  onlyDotAsSeparator?: boolean;
   syncLoading?: boolean;
   polyglotOptions?: {
+    pluralRules?: any;
     interpolation?: InterpolationTokenOptions;
     allowMissing?: boolean;
     onMissingKey?: OnMissingKeyMethodType;

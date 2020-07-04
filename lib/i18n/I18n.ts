@@ -5,12 +5,12 @@ import Polyglot from "node-polyglot";
 import { Obj } from "@noreajs/common";
 
 export default class I18n {
+  static FILE_EXTENSION = "json";
   private localeFiles: string[] = [];
   private locales: string[];
   private folder: string;
   private lazyLoading: boolean;
   private caseSensitive: boolean;
-  private onlyDotAsSeparator: boolean;
   private translations: {
     [locale: string]: any;
   } = {};
@@ -21,11 +21,10 @@ export default class I18n {
     this.validateParams(init);
 
     // init parameters
-    this.locales = init.locales;
+    this.locales = JSON.parse(JSON.stringify(init.locales).toLowerCase());
     this.folder = init.languagesFolder ?? "i18n";
     this.lazyLoading = init.lazyLoading ?? false;
     this.caseSensitive = init.caseSensitive ?? false;
-    this.onlyDotAsSeparator = init.onlyDotAsSeparator ?? false;
 
     const defaultLocale = init.fallback ?? init.locales[0];
 
@@ -47,6 +46,10 @@ export default class I18n {
       this.readLocalFilesSync();
   }
 
+  /**
+   * Validate parameters
+   * @param init parameters
+   */
   private validateParams(init: I18nConstructorType) {
     if (init.locales.length === 0) {
       throw console.warn("locales: At least one language is required.");
@@ -59,12 +62,19 @@ export default class I18n {
     }
   }
 
+  /**
+   * Load transactions asynchronously
+   * @param callback callback
+   */
   async loadTranslations(
     callback?: (translations: any) => void | Promise<void>
   ) {
     await this.readLocalFiles(callback);
   }
 
+  /**
+   * Create translations initial files if not exists
+   */
   private syncLocalFiles() {
     for (const locale of this.locales) {
       const localePath = `${this.folder}/${locale.toLowerCase()}`;
@@ -84,17 +94,24 @@ export default class I18n {
     }
   }
 
+  /**
+   * Initialize translations object
+   */
   private initTranslations() {
     for (const locale of this.locales) {
       this.translations[locale.toLowerCase()] = {};
     }
   }
 
+  /**
+   * Load translations files
+   * @param callback callback
+   */
   private async readLocalFiles(
     callback?: (translations: any) => void | Promise<void>
   ) {
     const allFiles = await glob(
-      `${this.folder}/**/*.json`,
+      `${this.folder}/**/*.${I18n.FILE_EXTENSION}`,
       (err: Error | null, matches: string[]) => {
         if (err) {
           throw err;
@@ -124,8 +141,11 @@ export default class I18n {
     );
   }
 
+  /**
+   * Read local files synchronously
+   */
   private readLocalFilesSync() {
-    this.localeFiles = glob.sync(`${this.folder}/**/*.json`);
+    this.localeFiles = glob.sync(`${this.folder}/**/*.${I18n.FILE_EXTENSION}`);
 
     /**
      * For eager loading
@@ -144,14 +164,25 @@ export default class I18n {
     }
   }
 
+  /**
+   * Read a single translation file
+   * @param filePath file path
+   */
   private readLocalFile(filePath: string) {
     if (fs.statSync(filePath).isFile()) {
       const pathParts = this.explodePath(filePath);
       const jsonContent = JSON.parse(fs.readFileSync(filePath, "utf-8"));
 
+      const pathStr = JSON.stringify([
+        ...pathParts.internalPath,
+        pathParts.file.name,
+      ]);
+
       Obj.assignNestedProperty(
         this.translations[pathParts.locale],
-        [...pathParts.internalPath, pathParts.file.name],
+        this.caseSensitive === false
+          ? JSON.parse(pathStr.toLowerCase())
+          : JSON.parse(pathStr),
         jsonContent
       );
     } else {
@@ -159,14 +190,46 @@ export default class I18n {
     }
   }
 
-  private keyPrefix(filePath: string) {
-    const pathParts = this.explodePath(filePath);
-    return this.onlyDotAsSeparator
-      ? `${[...pathParts.internalPath, pathParts.file.name].join(".")}.`
-      : `${[...pathParts.internalPath, pathParts.file.name].join("/")}.`;
+  /**
+   * File path related to a the given key and locale
+   * @param key phrase
+   * @param locale locale
+   */
+  private keyToPath(key: string, locale: string) {
+    // define locale files depending on caseSensitive state
+    const localeFilesStr =
+      this.caseSensitive === false
+        ? JSON.stringify(this.localeFiles).toLowerCase()
+        : JSON.stringify(this.localeFiles);
+
+    // file path
+    let filePath = `${this.folder}/${locale.toLowerCase()}`;
+
+    // phrase parts
+    const keyParts = key.split(".");
+
+    for (const key of keyParts) {
+      filePath = `${filePath}/${key}`;
+
+      // potential path
+      const path =
+        this.caseSensitive === false
+          ? `${filePath}.${I18n.FILE_EXTENSION}`.toLowerCase()
+          : `${filePath}.${I18n.FILE_EXTENSION}`;
+
+      if (JSON.parse(localeFilesStr).includes(path)) {
+        return path;
+      }
+    }
+    return undefined;
   }
 
+  /**
+   * Explode file path in parts
+   * @param path path
+   */
   private explodePath(path: string) {
+    const folderPathParts = this.folder.split(/[\\\/]/);
     const parts = path.split(/[\\\/]/);
     const fileName = parts[parts.length - 1];
     const fileNameParts = fileName.split(".");
@@ -175,43 +238,78 @@ export default class I18n {
         name: fileNameParts[0],
         ext: fileNameParts[1],
       },
-      folder: parts[0],
+      folder: parts.slice(0, folderPathParts.length - 1),
       locale: parts[1],
-      internalPath: parts.slice(2, parts.length - 1),
+      internalPath: parts.slice(folderPathParts.length + 1, parts.length - 1),
       parts,
     };
   }
 
+  /**
+   * Set locale
+   * @param value new locale
+   */
   setLocale(value: string) {
-    if (this.locales.includes(value)) {
-      // set polyglot locale
-      this.polyglot.locale(value);
+    if (value) {
+      // locale in lower case
+      const locale = value.toLowerCase();
 
-      // replace phrases in case of eager loading
-      if (!this.lazyLoading) {
-        this.polyglot.replace(this.translations[value.toLowerCase()]);
+      if (this.locales.includes(locale)) {
+        // set polyglot locale
+        this.polyglot.locale(locale);
+
+        // replace phrases in case of eager loading
+        if (!this.lazyLoading) {
+          this.polyglot.replace(this.translations[locale]);
+        }
+      } else {
+        throw console.warn(
+          `setLocale: language ${locale} is not supported. The current languages are [${this.locales.join(
+            ", "
+          )}]`
+        );
       }
-    } else {
-      throw console.warn(
-        `setLocale: value must be in [${this.locales.join(", ")}]`
-      );
     }
   }
 
+  /**
+   * Get locale
+   */
   getLocale(): string {
     return this.polyglot.locale();
   }
 
+  /**
+   * Get translations
+   */
   getTranslations() {
     return this.translations;
   }
 
+  /**
+   * Translate a key
+   * @param phrase translation key
+   * @param options translation options
+   */
   t(
     phrase: string,
     options?: number | Polyglot.InterpolationOptions | undefined
   ) {
-    if (!this.lazyLoading) {
+    const locale = this.polyglot.locale().toLowerCase();
+    const key = this.caseSensitive === false ? phrase.toLowerCase() : phrase;
+
+    // lazy loading code
+    if (this.lazyLoading) {
+      const filePath = this.keyToPath(key, locale);
+      if (filePath) {
+        // read the related file
+        this.readLocalFile(filePath);
+        // extend polyglot phrase
+        this.polyglot.extend(this.translations[locale]);
+      } else {
+        console.warn(`t: ${key} related file does not exist.`);
+      }
     }
-    return this.polyglot.t(phrase, options);
+    return this.polyglot.t(key, options);
   }
 }
