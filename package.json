@@ -1,6 +1,6 @@
 {
   "name": "@noreajs/i18n",
-  "version": "0.0.0",
+  "version": "0.0.1-0",
   "description": "Library of tools necessary for the internationalization of an application, based on polyglot from airbnb",
   "main": "dist/index.js",
   "dependencies": {
