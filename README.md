@@ -23,7 +23,7 @@ import I18n from "../i18n/I18n";
 const i18n = new I18n({
     locales: ["en-US", "en-FR"],
     fallback: "en-fr",
-    languagesFolder: "i18n" // i18n is the default value and it is optional. This folder is going to be created a if not exist in the root folder
+    languagesFolder: "i18n" // i18n is the default value and it is optional.
 });
 
 // set the locale
@@ -58,7 +58,7 @@ To initialize a the i18n package, you need to fill some parameters.
 | --------------- | ------------------------------------------------------------ | --------------------- | ------------------------------------------------------------ |
 | locales         | Array<string>                                                |                       | Locale supported                                             |
 | fallback        | string                                                       | first `locales` value | Fallback locale                                              |
-| languagesFolder | string                                                       | `i18n`                | Folder where translations files are stored.                  |
+| languagesFolder | string                                                       | `i18n`                | Folder where translations files are stored. This folder is automatically created when not exists |
 | lazyLoading     | boolean                                                      | false                 | Resolve translation key while translate                      |
 | caseSensitive   | boolean                                                      | false                 | `users.index.empty` and `users.index.EMPTY` will be treated the same way |
 | syncLoading     | boolean                                                      | true                  | Load translations during initialization                      |
