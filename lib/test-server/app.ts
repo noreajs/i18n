@@ -5,7 +5,6 @@ import I18n from "../i18n/I18n";
 const i18n = new I18n({
   locales: ["en-US", "en-FR"],
   fallback: "en-fr",
-  // syncLoading: false,
 });
 
 const api = new NoreaBootstrap(apiRoutes, {
@@ -13,7 +12,7 @@ const api = new NoreaBootstrap(apiRoutes, {
   beforeStart: async () => {
     await i18n.loadTranslations((data) => {
       i18n.setLocale("en-fr");
-      console.log("t:", i18n.t("Users.index.empty"));
+      console.log("t:", i18n.t("home.hello"));
     });
   },
   afterStart: () => {

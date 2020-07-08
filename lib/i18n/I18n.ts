@@ -218,7 +218,7 @@ export default class I18n {
       ]);
 
       Obj.assignNestedProperty(
-        this.translations[pathParts.locale],
+        this.translations[pathParts.locale.toLowerCase()],
         this.caseSensitive === false
           ? JSON.parse(pathStr.toLowerCase())
           : JSON.parse(pathStr),
@@ -274,13 +274,14 @@ export default class I18n {
     const parts = path.split(/[\\\/]/);
     const fileName = parts[parts.length - 1];
     const fileNameParts = fileName.split(".");
+
     return {
       file: {
         name: fileNameParts[0],
         ext: fileNameParts[1],
       },
-      folder: parts.slice(0, folderPathParts.length - 1),
-      locale: parts[1],
+      folder: parts.slice(0, folderPathParts.length),
+      locale: parts[folderPathParts.length],
       internalPath: parts.slice(folderPathParts.length + 1, parts.length - 1),
       parts,
     };
