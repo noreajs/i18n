@@ -5,15 +5,20 @@ import I18n from "../i18n/I18n";
 const i18n = new I18n({
   locales: ["en-US", "en-FR"],
   fallback: "en-fr",
+  // syncLoading: false,
 });
-
-i18n.setLocale("en-US");
-
-console.log("say hello", i18n.t("users.index.empty"));
 
 const api = new NoreaBootstrap(apiRoutes, {
   appName: "I18n test server",
-  beforeStart: () => {},
+  beforeStart: async () => {
+    await i18n.loadTranslations((data) => {
+      i18n.setLocale("en-fr");
+      console.log("t:", i18n.t("Users.index.empty"));
+    });
+  },
+  afterStart: () => {
+    
+  },
 });
 
 api.start();

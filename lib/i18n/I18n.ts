@@ -51,8 +51,11 @@ export default class I18n {
     this.initTranslations();
     this.syncLocalFiles();
 
-    if (!init.syncLoading || init.syncLoading === true)
+    const syncLoading = init.syncLoading ?? true;
+
+    if (syncLoading) {
       this.readLocalFilesSync();
+    }
   }
 
   /**
@@ -83,9 +86,9 @@ export default class I18n {
    * @param callback callback
    */
   async loadTranslations(
-    callback?: (translations: any) => void | Promise<void>
+    callback?: (translations: any) => void | Promise<any>
   ) {
-    await this.readLocalFiles(callback);
+    return await this.readLocalFiles(callback);
   }
 
   /**
@@ -124,42 +127,52 @@ export default class I18n {
    * @param callback callback
    */
   private async readLocalFiles(
-    callback?: (translations: any) => void | Promise<void>
+    callback?: (translations: any) => any | Promise<any>
   ) {
-    const allFiles = await glob(
-      `${this.folder}/**/*.${I18n.FILE_EXTENSION}`,
-      (err: Error | null, matches: string[]) => {
-        if (err) {
-          throw err;
-        } else {
-          this.localeFiles = matches;
+    return new Promise<any>((resolve, reject) => {
+      try {
+        glob(
+          `${this.folder}/**/*.${I18n.FILE_EXTENSION}`,
+          (err: Error | null, matches: string[]) => {
+            if (err) {
+              throw err;
+            } else {
+              this.localeFiles = matches;
 
-          /**
-           * For eager loading
-           */
-          if (!this.lazyLoading) {
-            for (const filePath of matches) {
-              if (fs.statSync(filePath).isFile()) {
-                this.readLocalFile(filePath);
+              /**
+               * For eager loading
+               */
+              if (!this.lazyLoading) {
+                for (const filePath of matches) {
+                  if (fs.statSync(filePath).isFile()) {
+                    this.readLocalFile(filePath);
+                  }
+                }
+
+                // update polyglot phrases
+                this.polyglot.extend(
+                  this.translations[this.polyglot.locale().toLowerCase()]
+                );
+
+                // update polyglot fallback
+                this.fallbackPolyglot.extend(
+                  this.translations[
+                    this.fallbackPolyglot.locale().toLowerCase()
+                  ]
+                );
               }
+              if (callback) {
+                callback(this.translations);
+              }
+
+              resolve(this.translations);
             }
-
-            // update polyglot phrases
-            this.polyglot.replace(
-              this.translations[this.polyglot.locale().toLowerCase()]
-            );
-
-            // update polyglot fallback
-            this.fallbackPolyglot.replace(
-              this.translations[this.fallbackPolyglot.locale().toLowerCase()]
-            );
           }
-          if (callback) {
-            callback(this.translations);
-          }
-        }
+        );
+      } catch (error) {
+        reject(error);
       }
-    );
+    });
   }
 
   /**
